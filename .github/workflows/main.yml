@@ -1,0 +1,43 @@
+name: Build ProMicro‑Power‑Bridge
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Zephyr west & python
+        uses: zmkfirmware/zephyr‑west‑action@v0.1.0
+        with:
+          west‑manifest: west.yml
+          zephyr‑sdk‑version: 0.17.0
+
+      - name: Build firmware for nice!nano
+        uses: zmkfirmware/zephyr‑west‑action@v0.1.0
+        with:
+          command: build
+          command‑args: >‑
+            ‑s .
+            ‑b promicro_nrf52840/nrf52840
+            ‑‑build‑dir build_nano_xds
+            ‑‑pristine
+
+      - name: Install uf2conv
+        run: pip install --pre -U git+https://github.com/makerdiary/uf2utils.git@main
+
+      - name: Generate uf2 file
+        run: uf2conv build_nano_xds/ProMicro_Power_Bridge/zephyr/zephyr.hex --family 0xADA52840 --output ProMicro_Power_Bridge.uf2
+
+      - name: Upload artifact
+        uses: actions/upload‑artifact@v4
+        with:
+          name: firmware‑uf2
+          path: |
+            build_nano_xds/ProMicro_Power_Bridge/zephyr/zephyr.hex
+            ProMicro_Power_Bridge.uf2
